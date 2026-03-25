@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cursor
+.cursor/
+.claude/
+
+# Data / Checkpoints (large files)
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.safetensors
+data/
+outputs/
+checkpoints/
+wandb/
+
+# Logs
+*.log
+logs/
