@@ -1,0 +1,6 @@
+sudo chmod 666 /dev/ttyACM0
+python scripts/environments/teleoperation/teleop_se3_agent.py     --task=LeIsaac-SO101-CustomTask-v0     --teleop_device=so101leader     --num_envs=1     --device=cuda     --enable_cameras
+
+hf auth login --token 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 --add-to-git-credential
+HF_USER=$(hf auth whoami | awk -F': *' 'NR==1 {print $2}')
+echo $HF_USER
