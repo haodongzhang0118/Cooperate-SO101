@@ -2,6 +2,7 @@
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import timm
 
 
@@ -20,7 +21,6 @@ class DINOv3Encoder(nn.Module):
             img_size=img_size,
         )
         self.model.eval()
-        # Freeze all parameters
         for param in self.model.parameters():
             param.requires_grad = False
 
@@ -33,15 +33,16 @@ class DINOv3Encoder(nn.Module):
         """Extract patch tokens from images.
 
         Args:
-            x: (B, 3, H, W) — raw images (will be resized if needed).
+            x: (B, 3, H, W) — raw images, resized to img_size x img_size.
 
         Returns:
             (B, 256, 768) — patch tokens only (prefix tokens stripped).
         """
+        if x.shape[-2] != self.img_size or x.shape[-1] != self.img_size:
+            x = F.interpolate(x, size=(self.img_size, self.img_size), mode="bilinear", align_corners=False)
+
         with torch.no_grad():
-            # forward_features returns (B, num_prefix + num_patches, embed_dim)
             features = self.model.forward_features(x)
-            # Strip prefix tokens (CLS + registers)
             patch_tokens = features[:, self.num_prefix_tokens:, :]
         return patch_tokens
 

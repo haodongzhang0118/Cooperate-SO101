@@ -47,6 +47,7 @@ class DinoWMTestConfig(PreTrainedConfig):
 
     # --- World model ---
     num_cameras: int = 2
+    camera_names: list[str] = field(default_factory=lambda: ["wrist", "top"])
     num_hist: int = 3
     num_pred: int = 1
     frameskip: int = 5

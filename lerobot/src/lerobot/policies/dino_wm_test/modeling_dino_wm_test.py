@@ -35,7 +35,7 @@ class DinoWMTestPolicy(PreTrainedPolicy):
     config_class = DinoWMTestConfig
     name = "dino_wm_test"
 
-    def __init__(self, config: DinoWMTestConfig):
+    def __init__(self, config: DinoWMTestConfig, dataset_stats=None, **kwargs):
         super().__init__(config)
         self.config = config
 
@@ -79,13 +79,13 @@ class DinoWMTestPolicy(PreTrainedPolicy):
         # Action queue for deployment
         self._action_queue = deque()
 
-    def get_optim_params(self) -> dict:
+    def get_optim_params(self) -> list[dict]:
         params = (
             list(self.predictor.parameters())
             + list(self.proprio_encoder.parameters())
             + list(self.action_encoder.parameters())
         )
-        return {"params": params}
+        return [{"params": params}]
 
     def reset(self):
         self._action_queue.clear()
@@ -146,12 +146,13 @@ class DinoWMTestPolicy(PreTrainedPolicy):
         return z[:, :, :-2, :], z[:, :, -2, :], z[:, :, -1, :]
 
     def _extract_image_features(self, batch: dict) -> dict:
-        """Extract image tensors from a batch dict, keyed by camera name."""
+        """Extract image tensors from a batch dict, filtered by config.camera_names."""
         images = {}
         for key, value in batch.items():
             if key.startswith("observation.images."):
                 cam_name = key.split("observation.images.")[-1]
-                images[cam_name] = value
+                if cam_name in self.config.camera_names:
+                    images[cam_name] = value
         return images
 
     # -------------------------------------------------------------------------
