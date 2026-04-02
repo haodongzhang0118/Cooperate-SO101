@@ -36,6 +36,7 @@ parser.add_argument("--policy_timeout_ms", type=int, default=15000, help="Timeou
 parser.add_argument("--policy_action_horizon", type=int, default=16, help="Action horizon of the policy.")
 parser.add_argument("--policy_language_instruction", type=str, default=None, help="Language instruction of the policy.")
 parser.add_argument("--policy_checkpoint_path", type=str, default=None, help="Checkpoint path of the policy.")
+parser.add_argument("--goal_frame", type=int, default=-1, help="Goal frame offset from episode start. -1 = last frame.")
 
 
 # append AppLauncher cli args
@@ -126,6 +127,8 @@ def preprocess_obs_dict(obs_dict: dict, model_type: str, language_instruction: s
     if model_type in ["gr00tn1.5", "gr00tn1.6", "lerobot", "openpi"]:
         obs_dict["task_description"] = language_instruction
         return obs_dict
+    elif model_type == "dino_wm":
+        return obs_dict
     else:
         raise ValueError(f"Model type {model_type} not supported")
 
@@ -213,6 +216,22 @@ def main():
             port=args_cli.policy_port,
             camera_keys=[key for key, sensor in env.scene.sensors.items() if isinstance(sensor, Camera)],
             task_type=task_type,
+        )
+
+    elif args_cli.policy_type == "dino_wm":
+        from isaaclab.sensors import Camera
+        from leisaac.policy import DinoWMLocalPolicy
+
+        model_type = "dino_wm"
+        camera_names = [
+            key for key, sensor in env.scene.sensors.items() if isinstance(sensor, Camera)
+        ]
+        policy = DinoWMLocalPolicy(
+            checkpoint_path=args_cli.policy_checkpoint_path,
+            dataset_repo_id="haodoz0118/PickAndPlace",
+            camera_names=camera_names,
+            device=args_cli.device,
+            goal_frame=args_cli.goal_frame,
         )
 
     rate_limiter = RateLimiter(args_cli.step_hz)

@@ -4,3 +4,15 @@ python scripts/environments/teleoperation/teleop_se3_agent.py     --task=LeIsaac
 hf auth login --token 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 --add-to-git-credential
 HF_USER=$(hf auth whoami | awk -F': *' 'NR==1 {print $2}')
 echo $HF_USER
+
+
+cd /home/haodong/Desktop/Cooperate-SO101/leisaac
+export LEISAAC_ASSETS_ROOT=/home/haodong/Desktop/Cooperate-SO101/leisaac/assets
+python scripts/evaluation/policy_inference.py \
+    --task=LeIsaac-SO101-CustomTask-v0 \
+    --policy_type=dino_wm \
+    --policy_checkpoint_path=/home/haodong/Desktop/Cooperate-SO101/outputs/train/2026-03-29/21-30-18_dino_wm_test/checkpoints/last/pretrained_model \
+    --policy_action_horizon=5 \
+    --device=cuda \
+    --enable_cameras \
+    --headless

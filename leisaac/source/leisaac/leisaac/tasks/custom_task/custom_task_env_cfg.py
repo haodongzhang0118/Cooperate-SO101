@@ -2,6 +2,9 @@ import isaaclab.sim as sim_utils
 import torch
 
 from isaaclab.assets import AssetBaseCfg, RigidObject
+from isaaclab.assets.articulation import Articulation
+from isaaclab.envs import ManagerBasedEnv
+from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
@@ -18,7 +21,38 @@ from ..template import (
     SingleArmTaskSceneCfg,
     SingleArmTerminationsCfg,
 )
+from ..template.single_arm_env_cfg import SingleArmEventCfg
 from ..template import mdp
+
+
+ROBOT_INIT_JOINT_POS = {
+    "shoulder_pan": 0.0854,
+    "shoulder_lift": -1.7335,
+    "elbow_flex": 1.5708,
+    "wrist_flex": 1.1398,
+    "wrist_roll": -1.5143,
+    "gripper": 0.0533,
+}
+
+
+def reset_robot_to_init_pose(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    joint_pos: dict[str, float] = ROBOT_INIT_JOINT_POS,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+):
+    """Write specific joint positions to the robot after the default scene reset.
+
+    This does NOT change default_joint_pos (which JointPositionAction uses as
+    offset), so the leader-to-follower action mapping stays correct.
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    positions = asset.data.default_joint_pos[env_ids].clone()
+    for name, val in joint_pos.items():
+        joint_ids = asset.find_joints(name)[0]
+        positions[:, joint_ids] = val
+    zeros = torch.zeros_like(positions)
+    asset.write_joint_state_to_sim(positions, zeros, env_ids=env_ids)
 
 
 @configclass
@@ -102,12 +136,24 @@ class ObservationsCfg(SingleArmObservationsCfg):
 
 
 @configclass
+class CustomTaskEventCfg(SingleArmEventCfg):
+    """Event configuration that also drives the robot to a training-matched pose on reset."""
+
+    reset_robot_pose = EventTerm(
+        func=reset_robot_to_init_pose,
+        mode="reset",
+    )
+
+
+@configclass
 class CustomTaskEnvCfg(SingleArmTaskEnvCfg):
     """Configuration for the custom task environment."""
 
     scene: CustomTaskSceneCfg = CustomTaskSceneCfg(env_spacing=8.0)
 
     observations: ObservationsCfg = ObservationsCfg()
+
+    events: CustomTaskEventCfg = CustomTaskEventCfg()
 
     terminations: TerminationsCfg = TerminationsCfg()
 
