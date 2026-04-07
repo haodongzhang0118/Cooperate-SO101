@@ -90,7 +90,7 @@ def get_episode_bounds(dataset, ep_idx: int) -> tuple[int, int]:
 
 def load_frame(dataset, idx: int, camera_names: list[str], device: torch.device):
     """Load a single frame's images, state, and action from the dataset."""
-    sample = dataset[idx]
+    sample = dataset[int(idx)]
     images = {}
     for cam in camera_names:
         key = f"observation.images.{cam}"
@@ -254,6 +254,12 @@ def evaluate_multi_step_rollout(
         obs_visual = gt_visual[:, :num_hist]
         obs_proprio = gt_proprio[:, :num_hist]
 
+        # History actions for the initial window (frames 0..num_hist-1)
+        hist_action_ids = list(range(0, num_hist))
+        hist_actions = normalize_action(
+            actions_seq[hist_action_ids].unsqueeze(0), stats
+        )
+
         # Actions for rollout: action at frame (num_hist-1) drives the
         # transition from last history frame to first predicted frame, etc.
         rollout_action_ids = list(range(num_hist - 1, num_hist - 1 + rollout_horizon))
@@ -261,7 +267,8 @@ def evaluate_multi_step_rollout(
             actions_seq[rollout_action_ids].unsqueeze(0), stats
         )
 
-        result = model._rollout(obs_visual, obs_proprio, rollout_actions)
+        result = model._rollout(obs_visual, obs_proprio, rollout_actions,
+                                init_actions=hist_actions)
 
         for step in range(rollout_horizon + 1):
             pred_v = result["visual"][:, num_hist + step]
@@ -481,6 +488,9 @@ def main():
     parser.add_argument(
         "--dataset_repo_id", type=str, default="haodoz0118/PickAndPlace",
     )
+    parser.add_argument("--dataset_root", type=str, default=None,
+        help="Local path to dataset. If set, skip HuggingFace download.",
+    )
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--seed", type=int, default=42)
 
@@ -553,7 +563,7 @@ def main():
     print("\n[2/3] Loading dataset …")
     from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
-    dataset = LeRobotDataset(args.dataset_repo_id)
+    dataset = LeRobotDataset(args.dataset_repo_id, root=args.dataset_root)
     num_frames = len(dataset)
     num_episodes = len(dataset.meta.episodes)
     print(f"  repo_id   : {args.dataset_repo_id}")

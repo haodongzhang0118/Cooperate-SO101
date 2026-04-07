@@ -247,13 +247,16 @@ class DinoWMTestPolicy(PreTrainedPolicy):
             )
         return self._planner
 
-    def _rollout(self, obs_visual: Tensor, obs_proprio: Tensor, actions: Tensor) -> dict:
+    def _rollout(self, obs_visual: Tensor, obs_proprio: Tensor, actions: Tensor,
+                 init_actions: Tensor | None = None) -> dict:
         """Roll out the world model given initial observation and action sequence.
 
         Args:
             obs_visual: (B, num_hist, num_cam*256, 768) — initial visual tokens.
             obs_proprio: (B, num_hist, 768) — initial proprio embeddings.
             actions: (B, horizon, action_dim) — raw action sequences.
+            init_actions: (B, num_hist, action_dim) — real actions for the history
+                window. If None, falls back to zeros (legacy behavior).
 
         Returns:
             Dict with "visual" and "proprio" predicted latents.
@@ -261,8 +264,10 @@ class DinoWMTestPolicy(PreTrainedPolicy):
         B = obs_visual.shape[0]
         T_hist = self.config.num_hist
 
-        # Encode initial actions (use zeros for the initial window)
-        init_action = torch.zeros(B, T_hist, self.config.action_dim, device=actions.device)
+        if init_actions is None:
+            init_action = torch.zeros(B, T_hist, self.config.action_dim, device=actions.device)
+        else:
+            init_action = init_actions
         init_action_emb = self.action_encoder(init_action)  # (B, T_hist, 768)
 
         # Build initial z
