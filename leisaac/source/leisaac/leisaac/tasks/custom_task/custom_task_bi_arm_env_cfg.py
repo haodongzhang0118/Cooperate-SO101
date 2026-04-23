@@ -46,7 +46,7 @@ def place_board_over_box(
     env_ids: torch.Tensor,
     board_cfg: SceneEntityCfg = SceneEntityCfg("board"),
     box_cfg: SceneEntityCfg = SceneEntityCfg("box"),
-    z_offset: float = 0.005,
+    z_offset: float = 0.08,
 ):
     """Place the board directly above the box at reset, so Helper must move it first."""
     box: RigidObject = env.scene[box_cfg.name]
@@ -128,11 +128,11 @@ class CustomTaskBiArmSceneCfg(BiArmTaskSceneCfg):
     board: RigidObjectCfg = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Scene/board",
         spawn=sim_utils.CuboidCfg(
-            size=(0.12, 0.12, 0.008),
+            size=(0.20, 0.20, 0.01),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
             collision_props=sim_utils.CollisionPropertiesCfg(),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.6, 0.4, 0.2)),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.4, 0.9)),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(
             pos=(0.0, 0.0, 1.0),
@@ -213,6 +213,14 @@ class CustomTaskBiArmEnvCfg(BiArmTaskEnvCfg):
         self.scene.left_arm.init_state.rot = (1.0, 0.0, 0.0, 0.0)  # wxyz, facing right arm
 
         parse_usd_and_create_subassets(CUSTOM_SCENE_USD_PATH, self)
+
+        # Shift box: +X toward left arm, -Y toward right arm
+        orig_box = self.scene.box.init_state.pos
+        self.scene.box.init_state.pos = (orig_box[0] + 0.08, orig_box[1] - 0.08, orig_box[2])
+
+        # Place board on top of the box
+        box_pos = self.scene.box.init_state.pos
+        self.scene.board.init_state.pos = (box_pos[0], box_pos[1], box_pos[2] + 0.20)
 
         domain_randomization(
             self,
