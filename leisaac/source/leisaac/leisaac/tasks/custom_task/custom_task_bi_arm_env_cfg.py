@@ -1,7 +1,7 @@
 import isaaclab.sim as sim_utils
 import torch
 
-from isaaclab.assets import AssetBaseCfg, RigidObject
+from isaaclab.assets import AssetBaseCfg, RigidObject, RigidObjectCfg
 from isaaclab.assets.articulation import Articulation
 from isaaclab.envs import ManagerBasedEnv
 from isaaclab.managers import EventTermCfg as EventTerm
@@ -39,6 +39,28 @@ def reset_arm_to_init_pose(
         positions[:, joint_ids] = val
     zeros = torch.zeros_like(positions)
     asset.write_joint_state_to_sim(positions, zeros, env_ids=env_ids)
+
+
+def place_board_over_box(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    board_cfg: SceneEntityCfg = SceneEntityCfg("board"),
+    box_cfg: SceneEntityCfg = SceneEntityCfg("box"),
+    z_offset: float = 0.005,
+):
+    """Place the board directly above the box at reset, so Helper must move it first."""
+    box: RigidObject = env.scene[box_cfg.name]
+    board: RigidObject = env.scene[board_cfg.name]
+
+    target_pos = box.data.root_pos_w[env_ids].clone()
+    target_pos[:, 2] = target_pos[:, 2] + z_offset
+
+    zero_quat = torch.zeros(len(env_ids), 4, device=env.device)
+    zero_quat[:, 0] = 1.0
+    zero_vel = torch.zeros(len(env_ids), 6, device=env.device)
+
+    board.write_root_pose_to_sim(torch.cat([target_pos, zero_quat], dim=-1), env_ids=env_ids)
+    board.write_root_velocity_to_sim(zero_vel, env_ids=env_ids)
 
 
 @configclass
@@ -103,6 +125,21 @@ class CustomTaskBiArmSceneCfg(BiArmTaskSceneCfg):
         update_period=1 / 30.0,
     )
 
+    board: RigidObjectCfg = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/Scene/board",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.12, 0.12, 0.008),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.6, 0.4, 0.2)),
+        ),
+        init_state=RigidObjectCfg.InitialStateCfg(
+            pos=(0.0, 0.0, 1.0),
+            rot=(1.0, 0.0, 0.0, 0.0),
+        ),
+    )
+
 
 @configclass
 class BiArmTerminationsCfg_(BiArmTerminationsCfg):
@@ -134,6 +171,11 @@ class CustomTaskBiArmEventCfg(BiArmEventCfg):
         func=reset_arm_to_init_pose,
         mode="reset",
         params={"asset_cfg": SceneEntityCfg("left_arm")},
+    )
+
+    place_board = EventTerm(
+        func=place_board_over_box,
+        mode="reset",
     )
 
 
