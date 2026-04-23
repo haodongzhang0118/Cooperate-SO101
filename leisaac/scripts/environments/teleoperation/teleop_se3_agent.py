@@ -158,7 +158,9 @@ def main():  # noqa: C901
 
     # precheck task and teleop device
     if "BiArm" in task_name:
-        assert args_cli.teleop_device == "bi-so101leader", "only support bi-so101leader for bi-arm task"
+        assert args_cli.teleop_device in [
+            "bi-so101leader", "keyboard", "gamepad",
+        ], "only support bi-so101leader, keyboard, gamepad for bi-arm task"
     if "LeKiwi" in task_name:
         assert args_cli.teleop_device in [
             "lekiwi-leader",

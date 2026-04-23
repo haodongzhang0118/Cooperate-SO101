@@ -27,7 +27,9 @@ import argparse
 import json
 import os
 import struct
+import sys
 import time
+import types
 from collections import defaultdict
 from pathlib import Path
 
@@ -35,6 +37,23 @@ import numpy as np
 import torch
 import torch.nn as nn
 from einops import rearrange, repeat
+
+
+def _setup_lerobot_stub():
+    """Register a stub ``lerobot.policies`` so that only dino_wm_test is
+    imported, bypassing __init__.py which eagerly pulls in every policy
+    (GR00T, SmolVLA, etc.) and their heavy/incompatible dependencies."""
+    import lerobot as _lr
+
+    policies_dir = os.path.join(os.path.dirname(_lr.__file__), "policies")
+    if "lerobot.policies" not in sys.modules:
+        stub = types.ModuleType("lerobot.policies")
+        stub.__path__ = [policies_dir]
+        stub.__package__ = "lerobot.policies"
+        sys.modules["lerobot.policies"] = stub
+
+
+_setup_lerobot_stub()
 
 
 # ---------------------------------------------------------------------------
@@ -488,7 +507,8 @@ def main():
     parser.add_argument(
         "--dataset_repo_id", type=str, default="haodoz0118/PickAndPlace",
     )
-    parser.add_argument("--dataset_root", type=str, default=None,
+    parser.add_argument(
+        "--dataset_root", type=str, default=None,
         help="Local path to dataset. If set, skip HuggingFace download.",
     )
     parser.add_argument("--device", type=str, default="cuda")

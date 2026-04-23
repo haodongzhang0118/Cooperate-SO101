@@ -1,13 +1,16 @@
 sudo chmod 666 /dev/ttyACM0
-python scripts/environments/teleoperation/teleop_se3_agent.py     --task=LeIsaac-SO101-CustomTask-v0     --teleop_device=so101leader     --num_envs=1     --device=cuda     --enable_cameras
+export LEISAAC_ASSETS_ROOT=/home/haodong/Desktop/Cooperate-SO101/leisaac/assets
 
 hf auth login --token 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 --add-to-git-credential
 HF_USER=$(hf auth whoami | awk -F': *' 'NR==1 {print $2}')
 echo $HF_USER
 
 
+# teleop_device
+python scripts/environments/teleoperation/teleop_se3_agent.py     --task=LeIsaac-SO101-CustomTask-v0     --teleop_device=so101leader     --num_envs=1     --device=cuda     --enable_cameras
+
+# Oneline Evaluation
 cd /home/haodong/Desktop/Cooperate-SO101/leisaac
-export LEISAAC_ASSETS_ROOT=/home/haodong/Desktop/Cooperate-SO101/leisaac/assets
 python scripts/evaluation/policy_inference.py \
     --task=LeIsaac-SO101-CustomTask-v0 \
     --policy_type=dino_wm \
@@ -16,3 +19,41 @@ python scripts/evaluation/policy_inference.py \
     --device=cuda \
     --enable_cameras \
     --headless
+
+# Offline Evaluation
+# Big
+python scripts/evaluation/offline_eval.py \
+    --checkpoint /home/haodong/Desktop/Cooperate-SO101/outputs/train/2026-03-29/21-30-18_dino_wm_test/checkpoints/last/pretrained_model \
+    --dataset_repo_id haodoz0118/PickAndPlace \
+    --device cuda \
+    --seed 42 \
+    --num_eval_samples 200 \
+    --num_rollout_episodes 100 \
+    --rollout_horizon 15 \
+    --num_cem_episodes 5 \
+    --cem_num_samples 100 \
+    --cem_opt_steps 30 \
+    --cem_topk 10 \
+    --cem_mini_batch 10 \
+    --cem_objective_alpha 0.1 \
+    --goal_frame -1 \
+    --output_json results/eval_goal50_alpha0.json
+
+# Small
+python scripts/evaluation/offline_eval.py \
+    --checkpoint /home/haodong/Desktop/Cooperate-SO101/outputs/train/2026-03-29/21-30-18_dino_wm_test/checkpoints/last/pretrained_model \
+    --dataset_repo_id haodoz0118/PickAndPlace \
+    --device cuda \
+    --seed 42 \
+    --num_eval_samples 20 \
+    --num_rollout_episodes 5 \
+    --rollout_horizon 5 \
+    --num_cem_episodes 3 \
+    --cem_num_samples 20 \
+    --cem_opt_steps 10 \
+    --cem_topk 5 \
+    --cem_mini_batch 5 \
+    --cem_objective_alpha 0.0 \
+    --goal_frame 50 \
+    --output_json results/eval_goal50_alpha0.json
+

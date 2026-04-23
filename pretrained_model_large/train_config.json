@@ -1,0 +1,216 @@
+{
+    "dataset": {
+        "repo_id": "haodoz0118/PickAndPlace",
+        "root": null,
+        "episodes": null,
+        "image_transforms": {
+            "enable": false,
+            "max_num_transforms": 3,
+            "random_order": false,
+            "tfs": {
+                "brightness": {
+                    "weight": 1.0,
+                    "type": "ColorJitter",
+                    "kwargs": {
+                        "brightness": [
+                            0.8,
+                            1.2
+                        ]
+                    }
+                },
+                "contrast": {
+                    "weight": 1.0,
+                    "type": "ColorJitter",
+                    "kwargs": {
+                        "contrast": [
+                            0.8,
+                            1.2
+                        ]
+                    }
+                },
+                "saturation": {
+                    "weight": 1.0,
+                    "type": "ColorJitter",
+                    "kwargs": {
+                        "saturation": [
+                            0.5,
+                            1.5
+                        ]
+                    }
+                },
+                "hue": {
+                    "weight": 1.0,
+                    "type": "ColorJitter",
+                    "kwargs": {
+                        "hue": [
+                            -0.05,
+                            0.05
+                        ]
+                    }
+                },
+                "sharpness": {
+                    "weight": 1.0,
+                    "type": "SharpnessJitter",
+                    "kwargs": {
+                        "sharpness": [
+                            0.5,
+                            1.5
+                        ]
+                    }
+                },
+                "affine": {
+                    "weight": 1.0,
+                    "type": "RandomAffine",
+                    "kwargs": {
+                        "degrees": [
+                            -5.0,
+                            5.0
+                        ],
+                        "translate": [
+                            0.05,
+                            0.05
+                        ]
+                    }
+                }
+            }
+        },
+        "revision": null,
+        "use_imagenet_stats": true,
+        "video_backend": "torchcodec",
+        "streaming": false
+    },
+    "env": null,
+    "policy": {
+        "type": "dino_wm_test",
+        "n_obs_steps": 1,
+        "input_features": {
+            "observation.state": {
+                "type": "STATE",
+                "shape": [
+                    6
+                ]
+            },
+            "observation.images.wrist": {
+                "type": "VISUAL",
+                "shape": [
+                    3,
+                    480,
+                    640
+                ]
+            },
+            "observation.images.front": {
+                "type": "VISUAL",
+                "shape": [
+                    3,
+                    480,
+                    640
+                ]
+            },
+            "observation.images.top": {
+                "type": "VISUAL",
+                "shape": [
+                    3,
+                    480,
+                    640
+                ]
+            }
+        },
+        "output_features": {
+            "action": {
+                "type": "ACTION",
+                "shape": [
+                    6
+                ]
+            }
+        },
+        "device": "cuda",
+        "use_amp": false,
+        "use_peft": false,
+        "push_to_hub": true,
+        "repo_id": "haodoz0118/dino_wm_test_PickAndPlace",
+        "private": null,
+        "tags": null,
+        "license": null,
+        "pretrained_path": null,
+        "normalization_mapping": {
+            "VISUAL": "IDENTITY",
+            "STATE": "MEAN_STD",
+            "ACTION": "MEAN_STD"
+        },
+        "dino_img_size": 256,
+        "dino_embed_dim": 768,
+        "dino_num_patches": 256,
+        "predictor_depth": 6,
+        "predictor_heads": 16,
+        "predictor_mlp_dim": 2048,
+        "predictor_dim_head": 64,
+        "predictor_dropout": 0.0,
+        "predictor_emb_dropout": 0.0,
+        "num_cameras": 2,
+        "camera_names": [
+            "wrist",
+            "top"
+        ],
+        "num_hist": 3,
+        "num_pred": 1,
+        "frameskip": 5,
+        "state_dim": 6,
+        "action_dim": 6,
+        "cem_horizon": 5,
+        "cem_topk": 10,
+        "cem_num_samples": 100,
+        "cem_opt_steps": 30,
+        "cem_var_scale": 1.0,
+        "cem_objective_alpha": 0.1,
+        "cem_objective_mode": "last",
+        "optimizer_lr": 0.0005,
+        "optimizer_weight_decay": 0.0001
+    },
+    "output_dir": "outputs/train/2026-03-30/08-17-02_dino_wm_test",
+    "job_name": "dino_wm_test",
+    "resume": false,
+    "seed": 1000,
+    "num_workers": 4,
+    "batch_size": 16,
+    "steps": 200000,
+    "eval_freq": 20000,
+    "log_freq": 100,
+    "tolerance_s": 0.0001,
+    "save_checkpoint": true,
+    "save_freq": 10000,
+    "use_policy_training_preset": true,
+    "optimizer": {
+        "type": "adamw",
+        "lr": 0.0005,
+        "weight_decay": 0.0001,
+        "grad_clip_norm": 10.0,
+        "betas": [
+            0.9,
+            0.999
+        ],
+        "eps": 1e-08
+    },
+    "scheduler": null,
+    "eval": {
+        "n_episodes": 50,
+        "batch_size": 50,
+        "use_async_envs": false
+    },
+    "wandb": {
+        "enable": false,
+        "disable_artifact": false,
+        "project": "lerobot",
+        "entity": null,
+        "notes": null,
+        "run_id": null,
+        "mode": null
+    },
+    "peft": null,
+    "use_rabc": false,
+    "rabc_progress_path": null,
+    "rabc_kappa": 0.01,
+    "rabc_epsilon": 1e-06,
+    "rabc_head_mode": "sparse",
+    "rename_map": {},
+    "checkpoint_path": null
+}
