@@ -1,10 +1,16 @@
 """Causal ViT Predictor for DINO-WM, adapted from dino_wm/models/vit.py.
 
-Key change: dim 384 -> 768 to match DINOv3 ViT-B/16 embedding dimension.
+Key changes vs upstream:
+  - dim 384 -> 768 to match DINOv3 ViT-B/16
+  - Attention uses F.scaled_dot_product_attention (Flash-Attention v2 on A100 BF16),
+    avoiding materialization of the (B, heads, T, T) score matrix. Critical here
+    because T = num_frames * num_patches = 3 * 770 = 2310 makes a naive
+    matmul ~80 GiB at batch=256.
 """
 
 import torch
 from torch import nn
+import torch.nn.functional as F
 from einops import rearrange
 
 
@@ -48,11 +54,9 @@ class Attention(nn.Module):
 
         self.heads = heads
         self.scale = dim_head ** -0.5
+        self.attn_dropout_p = float(dropout)   # SDPA takes a scalar p
 
         self.norm = nn.LayerNorm(dim)
-        self.attend = nn.Softmax(dim=-1)
-        self.dropout = nn.Dropout(dropout)
-
         self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
 
         self.to_out = (
@@ -61,26 +65,33 @@ class Attention(nn.Module):
             else nn.Identity()
         )
 
-        # Pre-compute causal mask
+        # Pre-compute block-causal mask (1, 1, T_max, T_max). Bool: True = attend.
+        # F.scaled_dot_product_attention's `attn_mask` semantics for bool tensors:
+        #   True  -> participate in attention
+        #   False -> masked out
+        # generate_mask_matrix returns 1.0 where attention is allowed; cast to bool.
         self.register_buffer(
-            "bias", generate_mask_matrix(num_patches, num_frames), persistent=False
+            "bias",
+            generate_mask_matrix(num_patches, num_frames).bool(),
+            persistent=False,
         )
 
     def forward(self, x):
-        B, T, C = x.size()
+        B, T, _ = x.size()
         x = self.norm(x)
 
         qkv = self.to_qkv(x).chunk(3, dim=-1)
         q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=self.heads), qkv)
 
-        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
-        # Apply causal mask
-        dots = dots.masked_fill(self.bias[:, :, :T, :T] == 0, float("-inf"))
-
-        attn = self.attend(dots)
-        attn = self.dropout(attn)
-
-        out = torch.matmul(attn, v)
+        # Flash Attention v2 path on A100 BF16; falls back to memory-efficient
+        # attention otherwise. Either way, the (B, h, T, T) score matrix is NOT
+        # materialized — memory becomes O(B*h*T*d) instead of O(B*h*T^2).
+        out = F.scaled_dot_product_attention(
+            q, k, v,
+            attn_mask=self.bias[:, :, :T, :T],
+            dropout_p=self.attn_dropout_p if self.training else 0.0,
+            scale=self.scale,
+        )
         out = rearrange(out, "b h n d -> b n (h d)")
         return self.to_out(out)
 
