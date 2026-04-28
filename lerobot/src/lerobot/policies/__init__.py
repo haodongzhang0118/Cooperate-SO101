@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .act.configuration_act import ACTConfig as ACTConfig
+from .dino_seqwm.configuration_dino_seqwm import DinoSeqWMConfig as DinoSeqWMConfig
 from .dino_wm_test.configuration_dino_wm_test import DinoWMTestConfig as DinoWMTestConfig
 from .diffusion.configuration_diffusion import DiffusionConfig as DiffusionConfig
 from .groot.configuration_groot import GrootConfig as GrootConfig
@@ -28,6 +29,7 @@ from .xvla.configuration_xvla import XVLAConfig as XVLAConfig
 
 __all__ = [
     "ACTConfig",
+    "DinoSeqWMConfig",
     "DinoWMTestConfig",
     "DiffusionConfig",
     "PI0Config",
