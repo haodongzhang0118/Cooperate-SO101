@@ -230,6 +230,20 @@ class DinoSeqWMPolicy(PreTrainedPolicy):
         z_loss_joint_per_b = err_j.mean(dim=(1, 2, 3))                # (B,)
 
         # 9. Phase-aware weighting
+        if "phase" not in batch:
+            raise RuntimeError(
+                "DinoSeqWMPolicy requires a `phase` column (int8, 0=A / 1=B) in "
+                "the batch, but it is missing.\n"
+                f"  Available batch keys: {sorted(batch.keys())}\n"
+                "Likely causes (in order of likelihood):\n"
+                "  1. The dataset uploaded to Drive predates "
+                "`scripts_analyze/embed_phase_into_dataset.py`. Re-tar the local "
+                "`bimanual_cooperate/` after running embed_phase + drop_bad_episodes "
+                "and re-upload.\n"
+                "  2. HF datasets cache is stale. Delete the HF cache dir "
+                "(`HF_HOME/datasets/...`) and re-run.\n"
+                "  3. Some processor step is stripping unknown keys (unlikely)."
+            )
         phase = batch["phase"].to(z_loss_helper_per_b.dtype).view(B)  # (B,) 0 or 1
         in_A = 1.0 - phase
         in_B = phase

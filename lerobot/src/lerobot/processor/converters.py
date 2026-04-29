@@ -172,8 +172,15 @@ def _extract_complementary_data(batch: dict[str, Any]) -> dict[str, Any]:
     index_key = {"index": batch["index"]} if "index" in batch else {}
     task_index_key = {"task_index": batch["task_index"]} if "task_index" in batch else {}
     episode_index_key = {"episode_index": batch["episode_index"]} if "episode_index" in batch else {}
+    # Pass-through for dino_seqwm: per-frame {0=A, 1=B} embedded in the
+    # bimanual_cooperate parquet. Without this it gets silently dropped here
+    # and the policy crashes with KeyError('phase').
+    phase_key = {"phase": batch["phase"]} if "phase" in batch else {}
 
-    return {**pad_keys, **task_key, **subtask_key, **index_key, **task_index_key, **episode_index_key}
+    return {
+        **pad_keys, **task_key, **subtask_key, **index_key,
+        **task_index_key, **episode_index_key, **phase_key,
+    }
 
 
 def create_transition(
