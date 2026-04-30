@@ -13,11 +13,11 @@ DATASET_ROOT="${DATASET_ROOT:-/content/data/bimanual_cooperate}"
 DRIVE_RUNS_DIR="${DRIVE_RUNS_DIR:-/content/drive/MyDrive/dino_seqwm/runs}"
 RUN_NAME="${RUN_NAME:-$(date +%Y%m%d_%H%M%S)}"
 OUTPUT_DIR="${OUTPUT_DIR:-${DRIVE_RUNS_DIR}/${RUN_NAME}}"
-BATCH_SIZE="${BATCH_SIZE:-128}"   # 256 + T=2310 + depth=6×2 predictors will OOM on A100 80GB
-STEPS="${STEPS:-100000}"
-SAVE_FREQ="${SAVE_FREQ:-5000}"
+BATCH_SIZE="${BATCH_SIZE:-64}"   # 256 + T=2310 + depth=6×2 predictors will OOM on A100 80GB
+STEPS="${STEPS:-200000}"
+SAVE_FREQ="${SAVE_FREQ:-1000}"
 LOG_FREQ="${LOG_FREQ:-100}"
-NUM_WORKERS="${NUM_WORKERS:-8}"
+NUM_WORKERS="${NUM_WORKERS:-12}"
 SEED="${SEED:-1000}"
 USE_AMP="${USE_AMP:-true}"      # BF16 mixed precision; A100 native
 
